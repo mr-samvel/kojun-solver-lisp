@@ -13,8 +13,7 @@
     ;             coluna   linha
     ;;(setq celula (nth 1 (nth 2 grid)))
     
-    ;; (vals-of-neighbors celula11 grid)
-    ;;(write-line (write-to-string (vals-of-neighbors celula grid)))
+    
     (write-line (write-to-string (blocks-by-cols grid)))
 )
 

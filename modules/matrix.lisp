@@ -46,8 +46,39 @@
 
 ;; TODO
 (defun blocks-by-cols (matrix)
+    (loop for col in (cols matrix)
+        append (group-blocks col)
     )
+    ;; (loop 
+    ;;     for col in (cols matrix)
+    ;;     do (loop 
+    ;;                 for (a b) on col by #'cdr
+    ;;                 for block-a = (cell-block a)
+    ;;                 for block-b = (cell-block b)
+    ;;                 while b
+    ;;                 do (print block-a)
+    ;;                     (print block-b)
+    ;;                 collect (if (= block-a block-b) (list a b))
+    ;;             )
+    ;; )
+)
+
+(defun group-blocks (row)
+    
+)
 
 ;; TODO
 (defun undo-blocks-by-cols (blocks-by-cols)
+    ;; chunks-of (flatten blocks-by-cols) (size matrix)
     )
+
+;; TODO
+(defun chunks-of ( l n / a b )
+    (while l
+        (repeat n
+            (setq a (cons (car l) a)
+                  l (cdr l)))
+        (setq b (cons (reverse a) b)
+              a nil)
+    )
+    (reverse b))
