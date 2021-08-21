@@ -6,6 +6,7 @@
 (defun minus (lst1 lst2)
     (if (single lst1) lst1 (set-difference lst1 lst2)))
 
+;; Função responsável por preencher os valores das células "em branco" com possíveis valores
 (defun fill-values-with-choices (matrix)
     (setq local-matrix (loop for row in matrix collect (mapcar #'copy-structure row)))
     (labels (
@@ -87,7 +88,7 @@
 
 ;; Verifica se ha alguma celula vazia na linha passada
 (defun void (row)
-    (if (member NIL (loop for el in (list c1 c2 c3 c4) collect (cell-value el))) T NIL))
+    (if (member NIL (loop for el in row collect (cell-value el))) T NIL))
 
 ;; para a linha passada, retorna os valores unitarios
 (defun singles (row)
@@ -101,55 +102,51 @@
 
 ;; Aplica a função reduce para as celulas de cada coluna dividida por blocos.
 (defun prune (matrix)
-    (cols (undo-blocks-by-cols (mapcar #'reduce-choices (blocks-by-cols matrix)))))
+    (loop 
+        for block in (blocks-by-cols matrix)
+        do (reduce-choices block))
+    (return-from prune matrix))
 
-;; -- Recebe uma matriz de escolhas e a matriz de posições.
-;; -- Retorna uma lista que contém soluções válidas para o tabuleiro.
-;; -- A ideia desse algoritmo é de que filtre todas as escolhas possíveis, uma célula por vez,
-;; -- e retorne somente matrizes que contém escolhas válidas.
-;; search :: Matrix Choices -> Grid -> [Grid]
-;; search vals pos
-;;     -- nao retorna nada se a matriz de escolhas passada não pode fornecer uma solução
-;;     | blocked vals pos = []
-;;     -- se a matriz de escolhas passada é válida e só contém valores unitários, é uma solução,
-;;     -- portanto, extrai o valor de cada lista de escolhas e retorna.
-;;     | all (all single) vals = [map concat vals]
-;;     -- se a matriz de escolhas passada é valida e contém mais de uma escolha para pelo menos uma célula,
-;;     -- expande a matriz, reduz o número de escolhas restantes e continua o processo de busca sobre ela.
-;;     | otherwise = [g | vals' <- expand vals, g <- search (prune vals' pos) pos]
-
-(defun search(matrix)
-    (if (blocked matrix)
-        ;then
-        (list )
-        ;else
-        (if (every #'single (flatten matrix))
-            ;then
-            matrix
-            ;else
-        )
-    )
-)
+;; Retorna uma lista que contém soluções válidas para o tabuleiro.
+;; A ideia desse algoritmo é de que filtre todas as escolhas possíveis, uma célula por vez,
+;; e retorne somente matrizes que contém escolhas válidas.
+(defun filter-choices (matrix)
+    (cond 
+        ;; nao retorna nada se a matriz de escolhas passada não pode fornecer uma solução
+        ((blocked matrix) (list ))
+        ;; se a matriz de escolhas passada é válida e só contém valores unitários, é uma solução,
+        ;; portanto, extrai o valor de cada lista de escolhas e retorna.
+        ((every #'single (mapcar #'cell-value (flatten matrix))) (return-from filter-choices matrix))
+        ;; se a matriz de escolhas passada é valida e contém mais de uma escolha para pelo menos uma célula,
+        ;; expande a matriz, reduz o número de escolhas restantes e continua o processo de busca sobre ela.
+        (t (loop
+                for expanded-matrix in (expand matrix)
+                collect (filter-choices (prune expanded-matrix))))))
 
 
-;; -- Expand funciona de modo similar à collapse. A diferença é que faz o collapse
-;; -- apenas para a primeira célula que contém mais de uma escolha.
-;; expand :: Matrix Choices -> [Matrix Choices]
-;; expand m = [rows1 ++ [row1 ++ [c] : row2] ++ rows2 | c <- cs]
-;;     where
-;;         (rows1,row:rows2) = break (any (not . single)) m   ->
-;;         (row1,cs:row2) = break (not . single) row
-
+;; Gera n novas matrizes para as n escolhas da primeira celula com mais de uma escolha
 (defun expand (matrix)
-    (setq )
-)
+    (labels (
+        (first-not-single-cell (flattened-matrix)
+            (if (not (single (cell-value (car flattened-matrix))))
+                ;then
+                (car flattened-matrix)
+                ;else
+                (first-not-single-cell (cdr flattened-matrix))))
 
+        (make-single-choice-matrix (value cll matrix)
+            (setq matrix-copy 
+                (loop for row in matrix collect (mapcar #'copy-structure row)))
+            (setq cell-copy (cell-from-pos (cell-position cll) matrix-copy))
+            (setf (cell-value cell-copy) (list value))
+            (return-from make-single-choice-matrix matrix-copy)))
+        ;;do
+        (progn 
+            (setq cll (first-not-single-cell (flatten matrix)))
+            (loop for value in (cell-value cll)
+                collect (make-single-choice-matrix value cll matrix)))))
 
 ;; -- Recebe a matriz de valores e de posições lida do documento de texto.
 ;; -- Retorna a primeira solução encontrada para o tabuleiro.
-;; solve :: Grid -> Grid -> Grid
-;; solve vals pos = (search (prune (choices vals pos) pos) pos)!!0
-
-;; (defun solve (matrix)
-;;     (searchs (prune (choices (matrix))))
-;; )
+(defun solve (matrix)
+    (filter-choices (prune (fill-values-with-choices matrix))))
