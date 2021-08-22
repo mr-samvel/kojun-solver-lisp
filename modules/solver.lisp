@@ -2,15 +2,16 @@
 (defun single (list)
     (if (= (length list) 1) T NIL))
 
-;; se a lst1 eh single, retorna lst1, se nao, retorna lst1 \\ lst2
+;; Remove de lst1 os elementos de lst2
+;; Se lst1 eh single, retorna lst1
 (defun minus (lst1 lst2)
     (if (single lst1) lst1 (set-difference lst1 lst2)))
 
 ;; Função responsável por preencher os valores das células "em branco" com possíveis valores
+;; Possiveis valores sao: [1..tamanho do bloco] - [valores preexistentes no bloco] - [valores preexistentes de vizinhos]
 (defun fill-values-with-choices (matrix)
     (setq local-matrix (loop for row in matrix collect (mapcar #'copy-structure row)))
     (labels (
-        ;; [1..n]
         (one-to-n (n) (loop for i from 1 to n collect i))
         (gen-choices (el)
             (if (= (cell-value el) 0)
@@ -60,7 +61,7 @@
                 collect (if (single v) v NIL) into raw
                 finally (return (remove NIL raw)))))))
 
-;; Verifica se nao ha valores unitarios iguais na linha passada
+;; Verifica se nao ha valores unitarios iguais entre vizinhos
 (defun valid-neighborhood (row)
     (if (<= (length row) 1)
         T
@@ -94,13 +95,13 @@
 (defun singles (row)
     (flatten (remove-if-not #'single (loop for el in row collect (cell-value el)))))
 
-;; -- De uma linha contendo escolhas, reduz as escolhas com base em elementos unitários
-;; -- ex: ["1 2 3 4", "1", "3 4", "3"] -> ["2 4", "1", "4", "3"]
+;; De uma linha de células, reduz os possíveis valores de cada celula com base em elementos unitarios da linha
+;; ex: ["1 2 3 4", "1", "3 4", "3"] -> ["2 4", "1", "4", "3"]
 (defun reduce-choices (row)
     (setq s (singles row))
     (loop for el in row do (setf (cell-value el) (minus (cell-value el) s))))
 
-;; Aplica a função reduce para as celulas de cada coluna dividida por blocos.
+;; Aplica a função reduce-choices para as celulas de cada coluna dividida por blocos.
 (defun prune (matrix)
     (loop 
         for block in (blocks-by-cols matrix)
@@ -146,7 +147,16 @@
             (loop for value in (cell-value cll)
                 collect (make-single-choice-matrix value cll matrix)))))
 
-;; -- Recebe a matriz de valores e de posições lida do documento de texto.
-;; -- Retorna a primeira solução encontrada para o tabuleiro.
+;; Calcula e retorna uma lista com soluções para a matriz de celulas passada
 (defun solve (matrix)
     (filter-choices (prune (fill-values-with-choices matrix))))
+
+;; Resolve o tabuleiro kojun em path e printa
+(defun solve-and-print (path)
+    (setq grid (read-puzzle path))
+    (setq matrix (solve grid))
+    (setq ffm (full-flatten matrix))
+    (setq ffm-value (mapcar #'cell-value ffm))
+    (setq matrix-size (sqrt (length ffm-value)))
+    (chunks-of ffm-value matrix-size)
+)
